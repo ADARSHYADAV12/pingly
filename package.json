@@ -1,0 +1,82 @@
+{
+  "name": "pingly",
+  "version": "0.1.0",
+  "description": "AI done. You know. \u2014 desktop companion that tells you when your coding agent finishes or needs input",
+  "main": "./out/main/index.js",
+  "author": "Adarsh",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "fake": "node scripts/fake-event.mjs",
+    "test:adapters": "node -e \"var h=require('os').tmpdir()+'/pingly-adapter-test';process.env.USERPROFILE=h;process.env.LOCALAPPDATA=h+'/local';require('./out/main/adaptertest.js')\"",
+    "test:live": "node scripts/selftest.mjs",
+    "status": "node out/main/adapterstatus.js",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.pingly.app",
+    "productName": "Pingly",
+    "copyright": "Copyright \u00a9 2026 Adarsh",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "!out/main/adaptertest.js",
+      "!out/main/adapterstatus.js"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "."
+      }
+    ],
+    "win": {
+      "icon": "resources/icons/app.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Pingly",
+      "artifactName": "Pingly-${version}-setup.${ext}",
+      "include": "build/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "Pingly-${version}-portable.${ext}"
+    }
+  },
+  "dependencies": {
+    "electron-store": "8.2.0",
+    "express": "^4.21.2",
+    "smol-toml": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "electron": "^33.3.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

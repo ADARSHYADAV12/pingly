@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; media-src data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:*"
+    />
+    <title>Pingly</title>
+    <link rel="stylesheet" href="./dock.css" />
+  </head>
+  <body>
+    <div id="dock">
+      <div id="stage"><div id="inner"></div></div>
+    </div>
+    <script type="module" src="./dock.ts"></script>
+  </body>
+</html>

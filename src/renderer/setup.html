@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:*"
+    />
+    <title>Pingly — Agent setup</title>
+    <style>
+      :root {
+        --bg: #141417;
+        --surface: #1a1a1e;
+        --surface-2: #26262c;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.14);
+        --text: #f2f2f4;
+        --text-2: #a2a2aa;
+        --text-3: #6e6e78;
+        --accent: #f5a524;
+        --accent-ink: #1c1305;
+        --ok: #56c98b;
+        --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+        --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+        --ease: cubic-bezier(0.32, 0.72, 0, 1);
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f5f2;
+          --surface: #fbfaf8;
+          --surface-2: #efede8;
+          --border: rgba(0, 0, 0, 0.08);
+          --border-strong: rgba(0, 0, 0, 0.14);
+          --text: #16161a;
+          --text-2: #5c5c66;
+          --text-3: #8d8d97;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      ::-webkit-scrollbar {
+        width: 9px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--surface-2);
+        border-radius: 5px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--border-strong);
+      }
+
+      body {
+        margin: 0;
+        padding: 24px 24px 26px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        user-select: none;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ---------- hero ---------- */
+
+      .hero {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+
+      .hero svg {
+        width: 46px;
+        height: 46px;
+        flex: none;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 21px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
+
+      .hero .tag {
+        margin-top: 1px;
+        font-size: 12.5px;
+        color: var(--text-3);
+      }
+
+      .lede {
+        margin: 14px 0 0;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+
+      /* ---------- what to do ---------- */
+
+      .steps {
+        margin-top: 14px;
+        padding: 12px 15px;
+        background: var(--surface);
+        border: 0.5px solid var(--border);
+        border-radius: 14px;
+      }
+
+      .steps li {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-2);
+      }
+
+      .steps ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .steps b {
+        flex: none;
+        width: 19px;
+        height: 19px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--surface-2);
+        color: var(--text);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .steps em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      /* ---------- agent list ---------- */
+
+      .section {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 20px 0 2px;
+      }
+
+      .section h2 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      #summary {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--text-3);
+      }
+
+      .row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 11px 0;
+        border-top: 0.5px solid var(--border);
+      }
+
+      .row .info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .state {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--text-3);
+      }
+      .state.on {
+        color: var(--ok);
+      }
+
+      .what {
+        margin-top: 4px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--text-2);
+      }
+
+      .path {
+        margin-top: 7px;
+        padding: 5px 9px;
+        background: var(--surface-2);
+        border-radius: 7px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-3);
+        overflow-wrap: anywhere;
+        user-select: text;
+      }
+
+      /* ---------- buttons ---------- */
+
+      button {
+        flex: none;
+        height: 32px;
+        padding: 0 15px;
+        border: 0.5px solid var(--border-strong);
+        border-radius: 16px;
+        background: var(--surface-2);
+        color: var(--text);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 150ms var(--ease), color 150ms var(--ease), border-color 150ms var(--ease);
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--accent);
+        border-color: transparent;
+        color: var(--accent-ink);
+      }
+
+      button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: var(--accent-ink);
+      }
+
+      button.primary:hover:not(:disabled) {
+        filter: brightness(1.07);
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      /* ---------- footer ---------- */
+
+      .warn {
+        margin-top: 14px;
+        padding: 11px 13px;
+        background: rgba(229, 84, 75, 0.09);
+        border: 0.5px solid rgba(229, 84, 75, 0.35);
+        border-radius: 10px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: #e5544b;
+      }
+      .warn:empty {
+        display: none;
+      }
+
+      .note {
+        margin-top: 18px;
+        padding: 11px 13px;
+        background: var(--surface);
+        border: 0.5px solid var(--border);
+        border-left: 2px solid var(--accent);
+        border-radius: 10px;
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--text-2);
+      }
+      .note:empty {
+        display: none;
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 0.5px solid var(--border);
+      }
+
+      .fine {
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--text-3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hero">
+      <span id="mascot"></span>
+      <div>
+        <h1>Pingly</h1>
+        <div class="tag">AI done. You know.</div>
+      </div>
+    </div>
+
+    <p class="lede">
+      Pingly sits in your system tray and watches your AI coding agents. When one finishes or needs approval, a small
+      card appears at the top of your screen — so a 20-second question never costs you 40 minutes.
+    </p>
+
+    <div class="steps">
+      <ol>
+        <li><b>1</b><span>Hit <em>Connect</em> on each agent you actually use.</span></li>
+        <li><b>2</b><span>Restart that agent so it loads the new hooks.</span></li>
+        <li><b>3</b><span>Carry on working. Pingly stays hidden until something needs you.</span></li>
+      </ol>
+    </div>
+
+    <div class="warn" id="nodewarn"></div>
+
+    <div class="section">
+      <h2>Your agents</h2>
+      <span id="summary"></span>
+    </div>
+
+    <div id="rows"></div>
+    <div class="note" id="note"></div>
+
+    <footer>
+      <button id="demo">Show me a sample</button>
+      <span class="fine">
+        Your original config is copied to <code>.pingly-backup</code> first. Disconnect removes only Pingly's entries.
+      </span>
+    </footer>
+
+    <script type="module" src="./setup.ts"></script>
+  </body>
+</html>

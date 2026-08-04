@@ -1,0 +1,7 @@
+node_modules/
+out/
+dist/
+
+# generated at build time from scripts/gen-assets.mjs
+# (kept in the repo so a clone can build without running it)
+
