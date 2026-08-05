@@ -270,8 +270,10 @@ function pill(): HTMLElement {
     p.append(el('span', `dot ${s.state}`));
     p.append(
       s.state === 'working'
-        ? live(s.startedAt, '{t}', 'meta', true)
-        : el('span', 'meta', clock(s.changedAt - s.startedAt))
+        ? live(s.startedAt, '{t}', 'meta', true) // how long it has been running
+        : urgent(s)
+          ? live(s.changedAt, '{t}', 'meta', true) // how long it has been waiting on you
+          : el('span', 'meta', clock(s.changedAt - s.startedAt))
     );
     return p;
   }
@@ -284,7 +286,10 @@ function pill(): HTMLElement {
 function render(force = false): void {
   const now = Date.now();
   const expanded = isExpanded(now);
-  const visible = sessions.length > 0 && (expanded || sessions.some((s) => s.state === 'working'));
+  // Once a card collapses, a pill remains for anything still live — an amber dot for a
+  // prompt you have not answered, a clock for work in progress. Finished-and-collapsed
+  // needs nothing from you, so it goes away entirely.
+  const visible = expanded || sessions.some((s) => s.state === 'working' || urgent(s));
 
   const sig = JSON.stringify([
     expanded,

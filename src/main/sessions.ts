@@ -7,6 +7,14 @@ const SWEEP_MS = 30 * 1000;
 
 const TIER: Record<SessionState, number> = { 'needs-input': 0, error: 1, done: 2, working: 3 };
 
+/**
+ * Windows paths are case-insensitive, but agents echo back whatever the user typed —
+ * Codex reported `D:\Adarsh\...` while Claude Code reported `d:\Adarsh\...`, which
+ * split one project into two sessions and left a stale card on screen. The original
+ * casing is kept on the session for display and window matching; only the key is folded.
+ */
+const key = (cwd: string): string => cwd.trim().replace(/[\\/]+$/, '').toLowerCase();
+
 class SessionStore extends EventEmitter {
   private map = new Map<string, Session>();
 
@@ -19,7 +27,7 @@ class SessionStore extends EventEmitter {
     // Cursor reports user-cancelled turns as aborted — never notify for those.
     if ((event as { status?: string }).status === 'aborted') return;
 
-    const prev = this.map.get(event.cwd);
+    const prev = this.map.get(key(event.cwd));
     const next: Session = {
       cwd: event.cwd,
       project: event.project,
@@ -34,7 +42,7 @@ class SessionStore extends EventEmitter {
       dismissed: false
     };
 
-    this.map.set(event.cwd, next);
+    this.map.set(key(event.cwd), next);
 
     // working → working is a heartbeat, not news.
     const notify = !(event.state === 'working' && prev?.state === 'working');
@@ -44,7 +52,7 @@ class SessionStore extends EventEmitter {
   }
 
   dismiss(cwd: string): void {
-    const s = this.map.get(cwd);
+    const s = this.map.get(key(cwd));
     if (!s) return;
     s.dismissed = true;
     this.emit('changed');
@@ -56,7 +64,7 @@ class SessionStore extends EventEmitter {
   }
 
   get(cwd: string): Session | undefined {
-    return this.map.get(cwd);
+    return this.map.get(key(cwd));
   }
 
   /** Non-dismissed sessions, most urgent first. */

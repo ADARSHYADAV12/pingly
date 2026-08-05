@@ -74,7 +74,11 @@ export function createOverlay(preload: string, rendererUrl: string | null, rende
     maximizable: false,
     skipTaskbar: true,
     hasShadow: false,
-    focusable: false,
+    // Focusable, but never focused on our initiative: it is only ever shown with
+    // showInactive() and focus() is never called. A non-focusable window on Windows
+    // refuses activation, and Chromium then swallows clicks — hover worked, buttons
+    // did nothing. This is also what makes the card keyboard-reachable once clicked.
+    focusable: true,
     show: false,
     webPreferences: {
       preload,
@@ -114,9 +118,15 @@ export function createOverlay(preload: string, rendererUrl: string | null, rende
     }
   });
 
-  ipcMain.on('dock:dismiss', (_e, cwd: string) => sessions.dismiss(cwd));
+  ipcMain.on('dock:dismiss', (_e, cwd: string) => {
+    console.log('[pingly] dismiss', cwd);
+    sessions.dismiss(cwd);
+  });
 
-  ipcMain.on('dock:jump', (_e, cwd: string) => void handleJump(cwd));
+  ipcMain.on('dock:jump', (_e, cwd: string) => {
+    console.log('[pingly] jump', cwd);
+    void handleJump(cwd);
+  });
 
   sessions.on('changed', push);
   sessions.on('notify', (s) => maybePlay(s.state, (name) => overlay?.webContents.send('sound', name)));
