@@ -57,7 +57,14 @@ rmSync(home, { recursive: true, force: true });
     'every blocked-on-user notification type must be wired, agent_needs_input above all'
   );
   assert.equal(wired.hooks.UserPromptSubmit.length, 1);
-  assert.deepEqual(wired.hooks.PreToolUse, original.hooks.PreToolUse, 'untouched events must be byte-identical');
+  assert.deepEqual(
+    wired.hooks.PreToolUse[0],
+    original.hooks.PreToolUse[0],
+    "the user's own PreToolUse hook must survive untouched"
+  );
+  assert.equal(wired.hooks.PreToolUse.length, 2, 'ours is appended, theirs is kept');
+  assert.equal(wired.hooks.PreToolUse[1].matcher, 'AskUserQuestion|ExitPlanMode');
+  assert.equal(wired.hooks.PostToolUse[0].matcher, 'AskUserQuestion|ExitPlanMode');
   assert.equal(await claudeCode.isWired(), true);
 
   assert.ok(existsSync(`${f}.pingly-backup`), 'original must be backed up before the first write');
@@ -71,7 +78,8 @@ rmSync(home, { recursive: true, force: true });
   assert.equal(has(clean), false, 'no trace of us may remain');
   assert.equal(clean.model, 'opus');
   assert.deepEqual(clean.hooks.Stop, original.hooks.Stop, "user's hooks must be byte-identical after unwire");
-  assert.deepEqual(clean.hooks.PreToolUse, original.hooks.PreToolUse);
+  assert.deepEqual(clean.hooks.PreToolUse, original.hooks.PreToolUse, 'ours removed, theirs intact');
+  assert.equal('PostToolUse' in clean.hooks, false, 'events we created are removed entirely');
   assert.equal('Notification' in clean.hooks, false, 'events we created must be removed entirely');
   assert.equal(await claudeCode.isWired(), false);
 }

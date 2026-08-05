@@ -184,6 +184,11 @@ async function main(): Promise<void> {
   const cwd = str(payload.cwd) || workspace || str(payload.workspace_root) || process.cwd();
   // Cursor's stop hook reports how the turn ended; 'aborted' is dropped by the session store.
   const status = str(payload.status);
+  // AskUserQuestion arrives as a PreToolUse call whose input holds the question itself
+  const toolInput = payload.tool_input as Record<string, unknown> | undefined;
+  const question = Array.isArray(toolInput?.questions)
+    ? (toolInput.questions[0] as Record<string, unknown> | undefined)
+    : undefined;
   const event = {
     agent: f.agent || 'generic',
     state: status === 'error' ? 'error' : f.state || 'done',
@@ -192,8 +197,12 @@ async function main(): Promise<void> {
     sessionId: str(payload.session_id) || str(payload.conversation_id) || str(payload.conversationId),
     // Codex's only signal is the assistant's closing message; 80 chars is a dock line
     message:
-      str(payload['last-assistant-message'])?.slice(0, 80) || str(payload.message) || str(f.message),
-    detail: str(f.detail) || str(payload.command),
+      str(payload['last-assistant-message'])?.slice(0, 80) ||
+      str(question?.question) || // show the actual question, not just "you are needed"
+      str(payload.message) ||
+      str(f.message),
+    // the command awaiting approval, or the question's own short header
+    detail: str(f.detail) || str(payload.command) || str(toolInput?.command) || str(question?.header),
     shimPid: process.pid,
     ts: Date.now(),
     status

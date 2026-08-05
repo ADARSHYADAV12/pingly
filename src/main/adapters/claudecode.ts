@@ -28,10 +28,21 @@ const cmd = (state: 'done' | 'needs-input' | 'working'): HookGroup => ({
  */
 const BLOCKED_ON_USER = ['agent_needs_input', 'permission_prompt', 'idle_prompt', 'elicitation_dialog'];
 
+/**
+ * Tools that stop and wait for a human answer. This is the reliable signal: PreToolUse
+ * matches on tool name, and the question dialog *is* a tool call. The Notification types
+ * above never fired in practice, so they are kept only as a belt-and-braces fallback.
+ */
+const BLOCKING_TOOLS = 'AskUserQuestion|ExitPlanMode';
+
 /** Stop fires on task completion but not on Esc — a task you cancelled needs no notification. */
 const OURS: Record<string, HookGroup[]> = {
   Stop: [cmd('done')],
   Notification: BLOCKED_ON_USER.map((matcher) => ({ matcher, ...cmd('needs-input') })),
+  // the agent is about to block on a question
+  PreToolUse: [{ matcher: BLOCKING_TOOLS, ...cmd('needs-input') }],
+  // answered — it is thinking again
+  PostToolUse: [{ matcher: BLOCKING_TOOLS, ...cmd('working') }],
   // without this the dock never learns a task started, so it can show no elapsed time
   UserPromptSubmit: [cmd('working')]
 };
