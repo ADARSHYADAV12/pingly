@@ -53,7 +53,8 @@ rmSync(home, { recursive: true, force: true });
   assert.ok(has(wired.hooks.Stop[1]));
   assert.deepEqual(
     wired.hooks.Notification.map((g: any) => g.matcher),
-    ['permission_prompt', 'idle_prompt']
+    ['agent_needs_input', 'permission_prompt', 'idle_prompt', 'elicitation_dialog'],
+    'every blocked-on-user notification type must be wired, agent_needs_input above all'
   );
   assert.equal(wired.hooks.UserPromptSubmit.length, 1);
   assert.deepEqual(wired.hooks.PreToolUse, original.hooks.PreToolUse, 'untouched events must be byte-identical');

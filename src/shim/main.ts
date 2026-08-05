@@ -173,6 +173,7 @@ async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const f = flags(argv);
   const payload = { ...argvJson(argv), ...(await readStdin()) } as Record<string, unknown>;
+  debug('argv', JSON.stringify(argv), 'payload', JSON.stringify(payload));
 
   const chained =
     f.agent === 'codex' ? runDisplacedNotify(argv.find((a) => a.startsWith('{')) ?? '{}') : Promise.resolve();

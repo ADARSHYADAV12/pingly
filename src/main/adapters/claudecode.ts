@@ -19,13 +19,19 @@ const cmd = (state: 'done' | 'needs-input' | 'working'): HookGroup => ({
   hooks: [{ type: 'command', command: shimCommand('claude-code', state) }]
 });
 
+/**
+ * Every Notification type that means "blocked, waiting on the human". `agent_needs_input`
+ * is the one AskUserQuestion raises — the whole point of the app — and leaving it out meant
+ * the dock sat on `working` through the entire question. `elicitation_dialog` is the MCP
+ * equivalent. The two types that are *not* here, `auth_success` and `agent_completed`, do
+ * not need you.
+ */
+const BLOCKED_ON_USER = ['agent_needs_input', 'permission_prompt', 'idle_prompt', 'elicitation_dialog'];
+
 /** Stop fires on task completion but not on Esc — a task you cancelled needs no notification. */
 const OURS: Record<string, HookGroup[]> = {
   Stop: [cmd('done')],
-  Notification: [
-    { matcher: 'permission_prompt', ...cmd('needs-input') },
-    { matcher: 'idle_prompt', ...cmd('needs-input') }
-  ],
+  Notification: BLOCKED_ON_USER.map((matcher) => ({ matcher, ...cmd('needs-input') })),
   // without this the dock never learns a task started, so it can show no elapsed time
   UserPromptSubmit: [cmd('working')]
 };
