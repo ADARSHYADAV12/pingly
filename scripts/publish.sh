@@ -8,7 +8,7 @@
 # Safe to re-run: every step skips work that is already done.
 set -euo pipefail
 
-USER_NAME="${GITHUB_USER:-adarshbytes}"
+USER_NAME="${GITHUB_USER:-ADARSHYADAV12}"
 APP_REPO="pingly"
 SITE_REPO="pingly-site"
 TAG="v0.1.0"
