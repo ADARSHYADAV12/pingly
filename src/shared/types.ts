@@ -1,7 +1,7 @@
-export type AgentId = 'claude-code' | 'cursor' | 'codex' | 'antigravity' | 'generic';
+export type AgentId = 'claude-code' | 'cursor' | 'codex' | 'generic';
 export type SessionState = 'working' | 'needs-input' | 'done' | 'error';
 
-export const AGENT_IDS: AgentId[] = ['claude-code', 'cursor', 'codex', 'antigravity', 'generic'];
+export const AGENT_IDS: AgentId[] = ['claude-code', 'cursor', 'codex', 'generic'];
 export const SESSION_STATES: SessionState[] = ['working', 'needs-input', 'done', 'error'];
 
 export interface PinglyEvent {

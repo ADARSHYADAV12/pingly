@@ -1,15 +1,15 @@
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { CODEX_CHAIN_FILE, LEGACY_DIR, PINGLY_DIR } from '../../shared/paths';
 import type { AgentId } from '../../shared/types';
 import { settings } from '../settings';
-import { isOurs, nodeInfo, readText, type Adapter } from './types';
+import { isOurs, nodeInfo, readJson, readText, writeJson, type Adapter } from './types';
 import { claudeCode } from './claudecode';
 import { cursor } from './cursor';
 import { codex } from './codex';
-import { antigravity } from './antigravity';
 
-export const adapters: Adapter[] = [claudeCode, cursor, codex, antigravity];
+export const adapters: Adapter[] = [claudeCode, cursor, codex];
 
 export interface Runtime {
   /** Hooks shell out to node; without it nothing Pingly wires can ever fire. */
@@ -61,12 +61,35 @@ export async function setWired(id: AgentId, on: boolean): Promise<void> {
 }
 
 /**
+ * The Antigravity adapter is gone: its hook runner hands the command to cmd with the
+ * outer quotes still attached, so `"C:\Program Files\nodejs\node.exe"` was never a
+ * program it could find and every hook we wrote there failed silently.
+ *
+ * Dropping the adapter is not enough on its own — without this, anyone who wired it in
+ * an earlier build keeps dead entries in ~/.gemini/config/hooks.json forever, because
+ * only the adapter knew how to remove them. Same trap the pre-rename `nudge` group fell
+ * into, which is why that key goes too.
+ */
+function dropAntigravityHooks(): void {
+  const file = join(homedir(), '.gemini', 'config', 'hooks.json');
+  if (!existsSync(file)) return;
+  const cfg = readJson(file);
+  const stale = ['pingly', 'nudge'].filter((k) => k in cfg);
+  if (!stale.length) return;
+  for (const k of stale) delete cfg[k];
+  writeJson(file, cfg);
+  console.log(`[pingly] removed stale Antigravity hooks (${stale.join(', ')})`);
+}
+
+/**
  * One-time carry-over from the pre-rename build. Hooks written by Nudge point at a shim
  * path that no longer exists, so they would fail silently; re-wiring rewrites them in
  * place. The Codex chain record moves first — without it, unwire could not give Codex's
  * `notify` slot back to whatever program Nudge displaced.
  */
 export async function migrateFromLegacy(): Promise<void> {
+  dropAntigravityHooks();
+
   if (existsSync(LEGACY_DIR) && !existsSync(CODEX_CHAIN_FILE)) {
     const old = join(LEGACY_DIR, 'codex-chain.json');
     if (existsSync(old)) {

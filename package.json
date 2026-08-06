@@ -1,7 +1,7 @@
 {
   "name": "pingly",
   "version": "0.1.0",
-  "description": "AI done. You know. \u2014 desktop companion that tells you when your coding agent finishes or needs input",
+  "description": "AI done. You know. — desktop companion that tells you when your coding agent finishes or needs input",
   "main": "./out/main/index.js",
   "author": "Adarsh",
   "license": "MIT",
@@ -18,7 +18,7 @@
   "build": {
     "appId": "com.pingly.app",
     "productName": "Pingly",
-    "copyright": "Copyright \u00a9 2026 Adarsh",
+    "copyright": "Copyright © 2026 Adarsh",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -58,11 +58,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Pingly",
-      "artifactName": "Pingly-${version}-setup.${ext}",
+      "artifactName": "Pingly-Setup.${ext}",
       "include": "build/installer.nsh"
     },
     "portable": {
-      "artifactName": "Pingly-${version}-portable.${ext}"
+      "artifactName": "Pingly-Portable.${ext}"
     }
   },
   "dependencies": {

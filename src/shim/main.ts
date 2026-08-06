@@ -178,10 +178,8 @@ async function main(): Promise<void> {
   const chained =
     f.agent === 'codex' ? runDisplacedNotify(argv.find((a) => a.startsWith('{')) ?? '{}') : Promise.resolve();
 
-  // Antigravity reports the folder as workspacePaths[] and uses camelCase throughout.
-  const workspace = Array.isArray(payload.workspacePaths) ? str(payload.workspacePaths[0]) : undefined;
   // CLI flags win for agent/state; the payload wins for message and cwd.
-  const cwd = str(payload.cwd) || workspace || str(payload.workspace_root) || process.cwd();
+  const cwd = str(payload.cwd) || str(payload.workspace_root) || process.cwd();
   // Cursor's stop hook reports how the turn ended; 'aborted' is dropped by the session store.
   const status = str(payload.status);
   // AskUserQuestion arrives as a PreToolUse call whose input holds the question itself

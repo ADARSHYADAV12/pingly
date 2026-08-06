@@ -145,7 +145,12 @@ export async function handleJump(cwd: string): Promise<JumpResult | 'no-session'
   const result = await jumpTo(s);
   // Always report back — "never fail silently with no feedback".
   overlay?.webContents.send('jump:result', { cwd, result });
-  if (result === 'focused') sessions.dismiss(cwd);
+
+  // Dismissing means "I have dealt with this". An agent that is still working has not
+  // asked for anything yet, and its pill is the only sign it is running — dropping the
+  // session there empties the dock and makes Pingly look like it closed. Re-read the
+  // state rather than trusting `s`: the turn can finish while the helper is focusing.
+  if (result === 'focused' && sessions.get(cwd)?.state !== 'working') sessions.dismiss(cwd);
   return result;
 }
 

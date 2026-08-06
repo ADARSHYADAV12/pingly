@@ -29,7 +29,6 @@ const AGENT: Record<string, { label: string }> = {
   'claude-code': { label: 'Claude Code' },
   cursor: { label: 'Cursor' },
   codex: { label: 'Codex' },
-  antigravity: { label: 'Antigravity' },
   generic: { label: 'Agent' }
 };
 

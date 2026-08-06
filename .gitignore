@@ -5,3 +5,5 @@ dist/
 # generated at build time from scripts/gen-assets.mjs
 # (kept in the repo so a clone can build without running it)
 
+# the landing page is its own (private) repo — it must never land in the public app repo
+site/

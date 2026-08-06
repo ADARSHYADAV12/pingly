@@ -5,10 +5,9 @@
 import { claudeCode } from '../src/main/adapters/claudecode';
 import { cursor } from '../src/main/adapters/cursor';
 import { codex } from '../src/main/adapters/codex';
-import { antigravity } from '../src/main/adapters/antigravity';
 
 async function main(): Promise<void> {
-  for (const a of [claudeCode, cursor, codex, antigravity]) {
+  for (const a of [claudeCode, cursor, codex]) {
     const installed = await a.isInstalled();
     const wired = await a.isWired();
     const status = !installed ? 'not installed' : wired ? 'CONNECTED' : 'not connected';

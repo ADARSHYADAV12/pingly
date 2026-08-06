@@ -44,9 +44,12 @@ public class PinglyFocus {
   const int SW_RESTORE = 9;
   const uint FLASHW_ALL = 3, FLASHW_TIMERNOFG = 12;
 
+  // Window hosts we can jump back to, matched on the exact process name. Antigravity
+  // stays listed even though its own agent is not supported: the Claude Code and Codex
+  // extensions run inside it, and "Antigravity IDE" ships under its own process name.
   static readonly string[] Hosts = {
-    "cursor", "windowsterminal", "code", "antigravity", "powershell",
-    "pwsh", "cmd", "alacritty", "wezterm", "conhost"
+    "cursor", "windowsterminal", "code", "antigravity", "antigravity ide",
+    "powershell", "pwsh", "cmd", "alacritty", "wezterm", "conhost"
   };
 
   static string Env(string n) { return (Environment.GetEnvironmentVariable(n) ?? "").ToLowerInvariant(); }

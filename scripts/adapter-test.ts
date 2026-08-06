@@ -11,7 +11,6 @@ import { parse } from 'smol-toml';
 import { claudeCode } from '../src/main/adapters/claudecode';
 import { cursor } from '../src/main/adapters/cursor';
 import { codex } from '../src/main/adapters/codex';
-import { antigravity } from '../src/main/adapters/antigravity';
 import { CODEX_CHAIN_FILE } from '../src/shared/paths';
 
 const home = homedir();
@@ -220,31 +219,6 @@ rmSync(home, { recursive: true, force: true });
   await codex.unwire();
   assert.deepEqual((parse(readFileSync(f, 'utf8')) as any).notify, theirs, 'their notify must come back');
   assert.equal(existsSync(CODEX_CHAIN_FILE), false, 'chain file cleaned up');
-}
-
-/* ---------------- Antigravity ---------------- */
-{
-  const f = antigravity.configPath;
-  mkdirSync(join(home, '.gemini', 'config'), { recursive: true });
-  const original = {
-    'my-linter-hook': { PostToolUse: [{ matcher: 'run_command', hooks: [{ command: './scripts/lint.sh' }] }] }
-  };
-  writeFileSync(f, JSON.stringify(original, null, 2));
-
-  assert.equal(await antigravity.isWired(), false);
-  await antigravity.wire();
-  const wired = read(f);
-  assert.deepEqual(wired['my-linter-hook'], original['my-linter-hook'], "user's hook group untouched");
-  assert.ok(has(wired.pingly.Stop));
-  assert.equal(wired.pingly.PreToolUse[0].matcher, 'run_command');
-  assert.equal(await antigravity.isWired(), true);
-
-  await antigravity.wire();
-  assert.equal(Object.keys(read(f)).length, 2, 'idempotent');
-
-  await antigravity.unwire();
-  assert.deepEqual(read(f), original, 'unwire removes exactly our group');
-  assert.equal(await antigravity.isWired(), false);
 }
 
 /* -------- optional: run against a copy of a real config.toml --------

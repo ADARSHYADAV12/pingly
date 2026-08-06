@@ -24,10 +24,18 @@ button to jump back. Hover to see everything; it shrinks itself again when you m
 | Claude Code | `~/.claude/settings.json` | Finished, permission prompts, idle prompts |
 | Cursor | `~/.cursor/hooks.json` | Finished |
 | Codex CLI | `~/.codex/config.toml` | Turn complete |
-| Antigravity | `~/.gemini/config/hooks.json` | Agent stopped |
 
-Cursor and Antigravity expose no "the user was actually asked" event, so they only report
-completion. Codex only emits one event by design.
+Cursor exposes no "the user was actually asked" event, so it only reports completion.
+Codex only emits one event by design.
+
+These are wired into each tool's own global config, not into an editor, so it makes no
+difference how you launch them. The Claude Code and Codex extensions running inside
+VS Code, Cursor, or Antigravity read the same files and fire the same hooks.
+
+Antigravity's *own* agent is not supported. Its hook runner passes the command to `cmd`
+with the outer quotes still attached, so `"C:\Program Files\nodejs\node.exe"` is not a
+program it can find and every hook fails — reporting the error only for `PreToolUse`,
+and silently for `Stop`.
 
 ## Install
 
@@ -68,7 +76,7 @@ Hooks load when a session *starts* — restart the agent after connecting. Check
 tray → *Open log file*. Confirm Node is installed.
 
 **I see a card for every shell command.**
-That was Cursor/Antigravity behaviour in an earlier build; both now only report completion.
+That was Cursor behaviour in an earlier build; it now only reports completion.
 
 **"Jump to it" flashes the taskbar instead of switching.**
 Windows blocks background apps from stealing focus. Pingly flashes the target instead of

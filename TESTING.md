@@ -183,9 +183,11 @@ Restart the agent first. These can only be verified by real use.
 - [ ] **Computer-use still works.** Pingly took Codex's single `notify` slot and re-runs
       your original program; if that broke, this is where you'd see it.
 
-### Antigravity
-- [ ] Agent stops → card
-- [ ] No card per shell command
+### Extensions inside an editor
+Hooks live in each tool's global config, not in the editor, so the host should not matter.
+- [ ] Claude Code extension in **VS Code** → card on finish
+- [ ] Claude Code or Codex extension in **Antigravity IDE** → card on finish
+- [ ] `Resume Coding` focuses the editor window, not a stray terminal
 
 ---
 
@@ -229,8 +231,11 @@ Restart the agent first. These can only be verified by real use.
   from background processes; it only switches outright when the target is minimized.
 - Window matching is by **title**, so it can pick the wrong window when two open projects
   share a folder name.
-- Cursor and Antigravity give **no approval alerts** — neither exposes a "the user was
-  asked" event. Completion only.
+- Cursor gives **no approval alerts** — it exposes no "the user was asked" event.
+  Completion only.
+- Antigravity's own agent is **not supported**: its hook runner leaves the outer quotes on
+  the command, so `"C:\Program Files\nodejs\node.exe"` never resolves. The Claude Code and
+  Codex extensions running inside Antigravity are unaffected.
 - Codex only ever reports `done`. It has one event.
 - Unsigned, so SmartScreen and possibly antivirus will complain.
 - Windows only.
