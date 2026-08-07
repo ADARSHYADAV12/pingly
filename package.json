@@ -1,6 +1,6 @@
 {
   "name": "pingly",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI done. You know. — desktop companion that tells you when your coding agent finishes or needs input",
   "main": "./out/main/index.js",
   "author": "Adarsh",
