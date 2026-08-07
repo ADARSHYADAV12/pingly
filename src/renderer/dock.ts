@@ -296,7 +296,16 @@ function render(force = false): void {
     [...notes],
     sessions.map((s) => [s.cwd, s.state, s.message, s.detail, s.agent, s.changedAt])
   ]);
-  if (sig === signature && !force) return void tickTimes();
+  if (sig === signature && !force) {
+    // Re-assert visibility on every tick even when nothing changed. Main only
+    // acts on a transition (`visible && !isVisible()`), so a single missed
+    // message — a sleep/resume, a stalled renderer — would otherwise strand the
+    // window *shown over an empty DOM* forever, with events still arriving and
+    // nothing ever painting. Re-sending is a no-op for main when it agrees, and
+    // heals the mismatch within a second when it does not.
+    window.pingly.setVisible(visible);
+    return void tickTimes();
+  }
   signature = sig;
 
   window.pingly.setVisible(visible);
