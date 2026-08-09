@@ -11,7 +11,8 @@ interface Entry {
 }
 
 const OURS: Record<string, Entry> = {
-  sessionStart: { command: shimCommand('cursor', 'working') },
+  // Per-turn signal: unlike sessionStart, this fires every time the user submits a prompt.
+  beforeSubmitPrompt: { command: shimCommand('cursor', 'working') },
   stop: { command: shimCommand('cursor', 'done') },
   // Cursor has no "the user was actually asked" event: beforeShellExecution fires before
   // every shell command. Treating it as needs-input popped a card on each one, so it only
@@ -28,7 +29,7 @@ export const cursor: Adapter = {
   id: 'cursor',
   displayName: 'Cursor',
   configPath: FILE,
-  description: 'Tells you when a task finishes. Cursor gives no permission-prompt signal, so there is no approval alert.',
+  description: 'Shows a live timer and tells you when a task finishes. Cursor gives no permission-prompt signal.',
 
   async isInstalled() {
     return existsSync(DIR);
@@ -42,8 +43,16 @@ export const cursor: Adapter = {
   async wire() {
     const cfg = readJson(FILE);
     const hooks = hooksOf(cfg);
+    // Remove every older Pingly entry first. Cursor 1.x rejects the newer `sessionStart`
+    // event as unknown, invalidating the whole file; `beforeSubmitPrompt` is supported and
+    // is the correct per-turn signal anyway.
+    for (const event of Object.keys(hooks)) {
+      const kept = (hooks[event] ?? []).filter((entry) => !isOurs(entry.command));
+      if (kept.length) hooks[event] = kept;
+      else delete hooks[event];
+    }
     for (const [event, entry] of Object.entries(OURS)) {
-      hooks[event] = [...(hooks[event] ?? []).filter((e) => !isOurs(e.command)), entry];
+      hooks[event] = [...(hooks[event] ?? []), entry];
     }
     cfg.version = 1;
     cfg.hooks = hooks;

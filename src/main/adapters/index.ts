@@ -31,6 +31,8 @@ export interface AdapterStatus {
   wired: boolean;
   /** Cursor reloads hooks.json on save; Claude Code needs a fresh session. */
   needsRestart: boolean;
+  /** Codex will skip newly written lifecycle hooks until the user trusts them in /hooks. */
+  needsTrustApproval: boolean;
 }
 
 export async function listAdapters(): Promise<AdapterStatus[]> {
@@ -42,7 +44,8 @@ export async function listAdapters(): Promise<AdapterStatus[]> {
       description: a.description,
       installed: await a.isInstalled(),
       wired: await a.isWired(),
-      needsRestart: a.id !== 'cursor'
+      needsRestart: a.id !== 'cursor',
+      needsTrustApproval: a.id === 'codex' && (await a.isWired()) && !settings.get('codexHooksTrusted')
     }))
   );
 }
@@ -57,7 +60,14 @@ export async function setWired(id: AgentId, on: boolean): Promise<void> {
   const a = adapters.find((x) => x.id === id);
   if (!a) throw new Error(`unknown adapter ${id}`);
   await (on ? a.wire() : a.unwire());
+  // Reconnecting can change the trusted hook definition, so guide the user through
+  // Codex's review again instead of claiming setup is complete prematurely.
+  if (id === 'codex') settings.set('codexHooksTrusted', false);
   remember();
+}
+
+export function confirmCodexHookTrust(): void {
+  settings.set('codexHooksTrusted', true);
 }
 
 /**
@@ -103,6 +113,7 @@ export async function migrateFromLegacy(): Promise<void> {
     const stale = isOurs(readText(a.configPath)) && !(await a.isWired());
     if (!stale) continue;
     await a.wire();
+    if (a.id === 'codex') settings.set('codexHooksTrusted', false);
     console.log(`[pingly] re-wired ${a.displayName} to the new shim path`);
   }
   remember();

@@ -1,4 +1,5 @@
 import type { Session, SessionState } from '../shared/types';
+import { workingSetChanged } from '../shared/dock-state';
 
 interface DockPayload {
   sessions: Session[];
@@ -222,14 +223,20 @@ function card(s: Session): HTMLElement {
   // metadata left, action right
   const foot = el('div', 'foot');
   const meta = el('div', 'meta');
+  // A still-running agent has not finished anything, so it must not claim to have:
+  // the old fallback rendered a static "Finished in 0s" on every working card.
+  // Anything still in progress gets a ticking clock; only `done`/`error` report a total.
+  const timed = (origin: number, tpl: string): HTMLElement => {
+    const n = live(origin, tpl, '');
+    n.prepend(svg(ICON.clock));
+    return n;
+  };
   meta.append(
     s.state === 'needs-input'
-      ? (() => {
-          const n = live(s.changedAt, 'Waiting {t}', '');
-          n.prepend(svg(ICON.clock));
-          return n;
-        })()
-      : metaItem(ICON.clock, `Finished in ${fmt(s.changedAt - s.startedAt)}`)
+      ? timed(s.changedAt, 'Waiting {t}')
+      : s.state === 'working'
+        ? timed(s.startedAt, 'Working {t}')
+        : metaItem(ICON.clock, `Finished in ${fmt(s.changedAt - s.startedAt)}`)
   );
   // the host is already implied by the agent name in the header, so only the project follows
   meta.append(metaItem(ICON.folder, s.project));
@@ -367,6 +374,12 @@ window.pingly.onSound((name) => {
 });
 
 window.pingly.onSessions((p) => {
+  if (workingSetChanged(sessions, p.sessions) && p.sessions.some((s) => s.state === 'working')) {
+    // A new turn must always begin as the promised dot + clock. Stale tray pin or hover
+    // state from an older card must never make a working session occupy the full dock.
+    pinned = false;
+    hovering = false;
+  }
   sessions = p.sessions;
   autoCollapseMs = p.autoCollapseMs;
   render();

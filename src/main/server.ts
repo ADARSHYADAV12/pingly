@@ -27,6 +27,7 @@ function validate(body: unknown): PinglyEvent | undefined {
     cwd: b.cwd.trim(),
     project: clamp(b.project) || basename(b.cwd.trim()) || b.cwd.trim(),
     sessionId: clamp(b.sessionId),
+    turnId: clamp(b.turnId),
     message: clamp(b.message),
     detail: clamp(b.detail),
     shimPid: typeof b.shimPid === 'number' ? b.shimPid : 0,

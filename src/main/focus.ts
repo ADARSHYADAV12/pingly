@@ -57,6 +57,7 @@ public class PinglyFocus {
   public static int Main(string[] args) {
     string project = Env("PINGLY_PROJECT");
     string cwd = Env("PINGLY_CWD");
+    string agent = Env("PINGLY_AGENT");
     int self = 0; int.TryParse(Environment.GetEnvironmentVariable("PINGLY_SELF_PID"), out self);
     if (project.Length == 0) { Console.Write("not-found"); return 0; }
 
@@ -69,14 +70,17 @@ public class PinglyFocus {
       if (GetWindowTextW(h, sb, 512) == 0) return true;
       string title = sb.ToString();
       string lower = title.ToLowerInvariant();
-      if (lower.IndexOf(project) < 0 && !(cwd.Length > 0 && lower.IndexOf(cwd) >= 0)) return true;
 
       uint pid; GetWindowThreadProcessId(h, out pid);
       if ((int)pid == self) return true;
       string name;
       try { name = Process.GetProcessById((int)pid).ProcessName.ToLowerInvariant(); } catch { return true; }
 
-      int rank = Array.IndexOf(Hosts, name) >= 0 ? 0 : 1;
+      bool titleMatch = lower.IndexOf(project) >= 0 || (cwd.Length > 0 && lower.IndexOf(cwd) >= 0);
+      bool cursorFallback = agent == "cursor" && name == "cursor";
+      if (!titleMatch && !cursorFallback) return true;
+
+      int rank = titleMatch ? (Array.IndexOf(Hosts, name) >= 0 ? 0 : 1) : 2;
       // known agent hosts win; among equals the shortest title is the most specific match
       if (rank < bestRank || (rank == bestRank && title.Length < bestLen)) {
         best = h; bestRank = rank; bestLen = title.Length;
@@ -127,6 +131,7 @@ export async function jumpTo(session: Session): Promise<JumpResult> {
           ...process.env,
           PINGLY_PROJECT: session.project,
           PINGLY_CWD: session.cwd,
+          PINGLY_AGENT: session.agent,
           PINGLY_SELF_PID: String(process.pid)
         }
       },

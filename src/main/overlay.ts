@@ -63,6 +63,14 @@ function push(): void {
   });
 }
 
+/** Keep the transparent dock above active apps without taking keyboard focus. */
+function raiseOverlay(): void {
+  if (!overlay) return;
+  // Windows can drop a hidden transparent window out of the topmost band.
+  overlay.setAlwaysOnTop(true, 'screen-saver');
+  overlay.moveTop();
+}
+
 export function createOverlay(preload: string, rendererUrl: string | null, rendererFile: string): BrowserWindow {
   overlay = new BrowserWindow({
     ...frame(),
@@ -110,9 +118,12 @@ export function createOverlay(preload: string, rendererUrl: string | null, rende
       overlay.setBounds(frame()); // follow whichever screen is being used right now
       // Never show with focus — a stray focus steals keystrokes mid-typing.
       overlay.showInactive();
+      raiseOverlay();
+      console.log('[pingly] dock shown');
       poll ??= setInterval(pollCursor, HOVER_POLL_MS);
     } else if (!visible && overlay.isVisible()) {
       overlay.hide();
+      console.log('[pingly] dock hidden');
       setInteractive(false);
       if (poll) clearInterval(poll), (poll = null);
     }
@@ -129,7 +140,12 @@ export function createOverlay(preload: string, rendererUrl: string | null, rende
   });
 
   sessions.on('changed', push);
-  sessions.on('notify', (s) => maybePlay(s.state, (name) => overlay?.webContents.send('sound', name)));
+  sessions.on('notify', (s) => {
+    // A working pill can already be visible when completion arrives, leaving no show
+    // transition to lift it back above the active coding window.
+    if (overlay?.isVisible()) raiseOverlay();
+    maybePlay(s.state, (name) => overlay?.webContents.send('sound', name));
+  });
 
   const reposition = (): void => overlay?.setBounds(frame());
   screen.on('display-metrics-changed', reposition);

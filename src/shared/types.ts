@@ -10,6 +10,7 @@ export interface PinglyEvent {
   project: string;
   cwd: string;
   sessionId?: string;
+  turnId?: string;
   message?: string;
   detail?: string;
   shimPid: number;
@@ -20,6 +21,7 @@ export interface Session {
   cwd: string;
   project: string;
   agent: AgentId;
+  turnId?: string;
   state: SessionState;
   message?: string;
   detail?: string;

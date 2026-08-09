@@ -3,11 +3,89 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { parse } from 'smol-toml';
 import { CODEX_CHAIN_FILE, PINGLY_DIR } from '../../shared/paths';
-import { type Adapter, isCurrent, isOurs, readText, shimArgv, writeText } from './types';
+import {
+  type Adapter,
+  isCurrent,
+  isOurs,
+  readJson,
+  readText,
+  shimArgv,
+  shimCommand,
+  writeJson,
+  writeText
+} from './types';
 import { mkdirSync } from 'node:fs';
 
 const DIR = join(homedir(), '.codex');
 const FILE = join(DIR, 'config.toml');
+const HOOKS_FILE = join(DIR, 'hooks.json');
+
+interface HookEntry {
+  type?: string;
+  command?: string;
+}
+
+interface HookGroup {
+  matcher?: string;
+  hooks?: HookEntry[];
+}
+
+const hook = (state: 'working' | 'needs-input' | 'done'): HookGroup => ({
+  hooks: [{ type: 'command', command: shimCommand('codex', state) }]
+});
+
+/**
+ * Codex originally exposed only the `notify` completion callback. Current releases also
+ * expose lifecycle hooks, which let Pingly show the live timer as soon as a prompt is
+ * submitted and surface approval requests. `PostToolUse` is a harmless working heartbeat
+ * for ordinary tools and switches an approval card back to the timer after the tool runs.
+ */
+const OUR_HOOKS: Record<string, HookGroup[]> = {
+  UserPromptSubmit: [hook('working')],
+  PermissionRequest: [hook('needs-input')],
+  PostToolUse: [hook('working')],
+  Stop: [hook('done')]
+};
+
+function hooksOf(cfg: Record<string, unknown>): Record<string, HookGroup[]> {
+  const hooks = cfg.hooks;
+  return hooks && typeof hooks === 'object' ? (hooks as Record<string, HookGroup[]>) : {};
+}
+
+function hasCurrentHook(groups: HookGroup[] | undefined): boolean {
+  return (groups ?? []).some((group) => (group.hooks ?? []).some((entry) => isCurrent(entry.command)));
+}
+
+function wireLifecycleHooks(): void {
+  const cfg = readJson(HOOKS_FILE);
+  const hooks = hooksOf(cfg);
+  for (const [event, groups] of Object.entries(OUR_HOOKS)) {
+    const existing = (hooks[event] ?? []).filter(
+      (group) => !(group.hooks ?? []).some((entry) => isOurs(entry.command))
+    );
+    hooks[event] = [...existing, ...groups];
+  }
+  cfg.hooks = hooks;
+  writeJson(HOOKS_FILE, cfg);
+}
+
+function unwireLifecycleHooks(): void {
+  const cfg = readJson(HOOKS_FILE);
+  const hooks = hooksOf(cfg);
+  for (const event of Object.keys(hooks)) {
+    const kept = (hooks[event] ?? [])
+      .map((group) => ({
+        ...group,
+        hooks: (group.hooks ?? []).filter((entry) => !isOurs(entry.command))
+      }))
+      .filter((group) => group.hooks.length > 0);
+    if (kept.length) hooks[event] = kept;
+    else delete hooks[event];
+  }
+  if (Object.keys(hooks).length) cfg.hooks = hooks;
+  else delete cfg.hooks;
+  writeJson(HOOKS_FILE, cfg);
+}
 
 /**
  * Index of the first `[table]` header. TOML root keys must appear above every table,
@@ -100,9 +178,9 @@ function readChain(): Chain | null {
 
 export const codex: Adapter = {
   id: 'codex',
-  displayName: 'Codex CLI',
+  displayName: 'Codex',
   configPath: FILE,
-  description: 'Tells you when a turn completes. Any notify program you already use keeps working.',
+  description: 'Shows live progress in Codex CLI and IDE, plus approval prompts and completion. Approval alerts require one quick /hooks trust review.',
 
   async isInstalled() {
     return existsSync(DIR);
@@ -110,7 +188,12 @@ export const codex: Adapter = {
 
   async isWired() {
     const n = currentNotify(readText(FILE));
-    return !!n && isCurrent(n.join(' '));
+    const hooks = hooksOf(readJson(HOOKS_FILE));
+    return (
+      !!n &&
+      isCurrent(n.join(' ')) &&
+      Object.keys(OUR_HOOKS).every((event) => hasCurrentHook(hooks[event]))
+    );
   },
 
   async wire() {
@@ -127,15 +210,19 @@ export const codex: Adapter = {
 
     const argv = shimArgv('codex', 'done');
     writeText(FILE, setNotify(text, `notify = ${JSON.stringify(argv)}`, argv));
+    wireLifecycleHooks();
   },
 
   async unwire() {
     const text = readText(FILE);
-    if (!currentNotify(text)) return;
-    // hand the slot back to whoever had it, in their original formatting
-    const chain = readChain();
-    const line = chain ? (chain.line ?? `notify = ${JSON.stringify(chain.argv)}`) : null;
-    writeText(FILE, setNotify(text, line, chain ? chain.argv : null));
+    const notify = currentNotify(text);
+    if (notify && isOurs(notify.join(' '))) {
+      // hand the slot back to whoever had it, in their original formatting
+      const chain = readChain();
+      const line = chain ? (chain.line ?? `notify = ${JSON.stringify(chain.argv)}`) : null;
+      writeText(FILE, setNotify(text, line, chain ? chain.argv : null));
+    }
+    unwireLifecycleHooks();
     rmSync(CODEX_CHAIN_FILE, { force: true });
   }
 };

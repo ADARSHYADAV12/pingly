@@ -41,8 +41,10 @@ const OURS: Record<string, HookGroup[]> = {
   Notification: BLOCKED_ON_USER.map((matcher) => ({ matcher, ...cmd('needs-input') })),
   // the agent is about to block on a question
   PreToolUse: [{ matcher: BLOCKING_TOOLS, ...cmd('needs-input') }],
-  // answered — it is thinking again
-  PostToolUse: [{ matcher: BLOCKING_TOOLS, ...cmd('working') }],
+  // the current Claude Code signal for any tool approval prompt
+  PermissionRequest: [cmd('needs-input')],
+  // a tool finished — any approval is resolved and the agent is thinking again
+  PostToolUse: [cmd('working')],
   // without this the dock never learns a task started, so it can show no elapsed time
   UserPromptSubmit: [cmd('working')]
 };
@@ -56,7 +58,7 @@ export const claudeCode: Adapter = {
   id: 'claude-code',
   displayName: 'Claude Code',
   configPath: FILE,
-  description: 'Tells you when a task finishes, and when it asks for permission or goes idle.',
+  description: 'Shows a live timer and tells you when a task finishes, needs approval, or goes idle.',
 
   async isInstalled() {
     return existsSync(DIR);

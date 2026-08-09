@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, shell } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, Menu, Tray, shell } from 'electron';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BIN_DIR, PINGLY_DIR, SHIM_PATH } from '../shared/paths';
@@ -7,9 +7,14 @@ import { sessions } from './sessions';
 import { settings } from './settings';
 import { startServer } from './server';
 import { createOverlay, toggleDock } from './overlay';
-import { adapters, listAdapters, migrateFromLegacy, runtime, setWired } from './adapters';
+import { adapters, confirmCodexHookTrust, listAdapters, migrateFromLegacy, runtime, setWired } from './adapters';
+import { codex } from './adapters/codex';
+import { cursor } from './adapters/cursor';
 import { ensureHelper } from './focus';
 import { initLog, LOG_FILE } from './log';
+import { startCodexSessionWatcher } from './codex-session-watcher';
+import { startCursorSessionWatcher } from './cursor-session-watcher';
+import { launchCodexHookReview } from './codex-hook-review';
 
 const resourcesDir = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources');
 const preloadPath = join(__dirname, '../preload/index.js');
@@ -126,6 +131,10 @@ if (bulk) {
     ipcMain.handle('adapters:list', () => listAdapters());
     ipcMain.handle('adapters:runtime', () => runtime());
     ipcMain.handle('adapters:setWired', (_e, id: AgentId, on: boolean) => setWired(id, on));
+    ipcMain.handle('adapters:confirmCodexTrust', () => confirmCodexHookTrust());
+    ipcMain.handle('adapters:openCodexHookReview', () =>
+      launchCodexHookReview({ copyText: (text) => clipboard.writeText(text) })
+    );
     // lets someone see what a notification looks like before wiring anything up
     ipcMain.handle('demo:notify', () =>
       sessions.ingest({
@@ -151,10 +160,41 @@ if (bulk) {
     sessions.on('changed', buildTrayMenu);
 
     await startServer();
+    startCodexSessionWatcher((turn) => {
+      // The journal is Codex-owned rather than part of its hook config, so explicitly
+      // respect Pingly's Connect/Disconnect switch before surfacing the fallback event.
+      void codex.isWired().then((wired) => {
+        if (!wired) return;
+        sessions.ingest({
+          agent: 'codex',
+          state: 'working',
+          ...turn,
+          shimPid: 0,
+          ts: Date.now()
+        });
+      });
+    });
+    startCursorSessionWatcher((turn) => {
+      // Cursor's Windows hook runner is slow to launch. Its own diagnostic lifecycle
+      // marker appears immediately and contains no prompt text in the data we consume.
+      void cursor.isWired().then((wired) => {
+        if (!wired) return;
+        sessions.ingest({
+          agent: 'cursor',
+          state: 'working',
+          ...turn,
+          shimPid: 0,
+          ts: Date.now()
+        });
+      });
+    });
     console.log('[pingly] shim installed at', SHIM_PATH);
 
-    // first launch after install: explain what this is before it sits silently in the tray
-    if (process.argv.includes('--setup') || !settings.get('onboarded')) {
+    // First launch explains the setup before Pingly disappears into the tray. A new or
+    // changed Codex hook also brings this window back until its one-time trust review is
+    // confirmed, so upgrades cannot silently leave lifecycle tracking disabled.
+    const approvalNeeded = (await listAdapters()).some((a) => a.needsTrustApproval);
+    if (process.argv.includes('--setup') || !settings.get('onboarded') || approvalNeeded) {
       settings.set('onboarded', true);
       openSetup();
     }

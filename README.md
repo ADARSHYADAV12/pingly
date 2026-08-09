@@ -21,16 +21,19 @@ button to jump back. Hover to see everything; it shrinks itself again when you m
 
 | Agent | Config it edits | What you get |
 |---|---|---|
-| Claude Code | `~/.claude/settings.json` | Finished, permission prompts, idle prompts |
-| Cursor | `~/.cursor/hooks.json` | Finished |
-| Codex CLI | `~/.codex/config.toml` | Turn complete |
+| Claude Code | `~/.claude/settings.json` | Working, permission prompts, finished |
+| Cursor | `~/.cursor/hooks.json` | Working, finished |
+| Codex CLI and IDE | `~/.codex/config.toml`, `~/.codex/hooks.json` | Working, approval prompts, turn complete |
 
-Cursor exposes no "the user was actually asked" event, so it only reports completion.
-Codex only emits one event by design.
+Cursor exposes no "the user was actually asked" event, so it cannot report approval prompts.
+Codex's `notify` callback emits completion, and lifecycle hooks surface approval prompts.
+For the live timer, Pingly also watches Codex's local session lifecycle metadata because
+some IDE releases do not consistently fire the prompt-start hook. Prompt and response
+content is never read.
 
-These are wired into each tool's own global config, not into an editor, so it makes no
-difference how you launch them. The Claude Code and Codex extensions running inside
-VS Code, Cursor, or Antigravity read the same files and fire the same hooks.
+These are wired into each tool's own global config, not into a project. Claude Code works
+through its global hooks in supported editors; Codex IDE start tracking uses the local
+session fallback described above when its global start hook is unavailable.
 
 Antigravity's *own* agent is not supported. Its hook runner passes the command to `cmd`
 with the outer quotes still attached, so `"C:\Program Files\nodejs\node.exe"` is not a
@@ -40,7 +43,9 @@ and silently for `Stop`.
 ## Install
 
 Download `Pingly-x.y.z-setup.exe` from Releases and run it. The setup window opens on first
-launch — connect the agents you use, restart them, and you're done.
+launch and walks you through every required step. For Codex, that includes restarting it,
+clicking **Open Codex & copy /hooks**, and trusting Pingly's lifecycle hooks once before
+your first task. The final Trust action stays inside Codex's own security review.
 
 There's also a portable `.exe` if you'd rather not install.
 
@@ -75,8 +80,18 @@ Files live in `%LOCALAPPDATA%\Pingly` (shim, log, Codex chain record) and
 Hooks load when a session *starts* — restart the agent after connecting. Check
 tray → *Open log file*. Confirm Node is installed.
 
+**Codex finishes are reported, but its live timer does not start.**
+Install Pingly 0.1.3 or later, then restart Pingly. CLI users should also restart Codex,
+run `/hooks`, and trust Pingly so approval alerts work.
+
 **I see a card for every shell command.**
 That was Cursor behaviour in an earlier build; it now only reports completion.
+
+**One Cursor task creates both Cursor and Claude Code cards, or Open Session has no destination.**
+Install Pingly 0.1.9 or later. Cursor runs compatible Claude Code hooks too, and its Windows
+hook runner can take several seconds to launch. Newer Pingly watches Cursor's lifecycle
+marker for an immediate working pill, discards the Claude copy, then hands the same dock
+over to Cursor's authoritative hook for completion and Open Session.
 
 **"Jump to it" flashes the taskbar instead of switching.**
 Windows blocks background apps from stealing focus. Pingly flashes the target instead of

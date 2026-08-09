@@ -9,6 +9,8 @@ interface Schema {
   wiredAdapters: AgentId[];
   /** false until the setup window has been shown once */
   onboarded: boolean;
+  /** User confirmed Codex's one-time /hooks trust review for our current wiring. */
+  codexHooksTrusted: boolean;
 }
 
 export const settings = new Store<Schema>({
@@ -19,6 +21,7 @@ export const settings = new Store<Schema>({
     autoCollapseMs: 10000,
     position: 'top-center',
     wiredAdapters: [],
-    onboarded: false
+    onboarded: false,
+    codexHooksTrusted: false
   }
 });

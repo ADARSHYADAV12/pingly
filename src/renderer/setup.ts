@@ -8,6 +8,7 @@ interface AdapterStatus {
   installed: boolean;
   wired: boolean;
   needsRestart: boolean;
+  needsTrustApproval: boolean;
 }
 
 declare global {
@@ -16,6 +17,8 @@ declare global {
       list(): Promise<AdapterStatus[]>;
       runtime(): Promise<{ nodeFound: boolean; nodePath: string }>;
       setWired(id: string, on: boolean): Promise<void>;
+      openCodexHookReview(): Promise<{ copied: boolean; opened: boolean; error?: string }>;
+      confirmCodexTrust(): Promise<void>;
       demo(): Promise<void>;
     };
   }
@@ -59,13 +62,16 @@ async function refresh(): Promise<void> {
     ? ''
     : 'Node.js was not found on this PC. Pingly’s hooks run through it, so nothing will fire until you install Node and reconnect.';
   const found = list.filter((a) => a.installed);
-  const on = found.filter((a) => a.wired).length;
+  const on = found.filter((a) => a.wired && !a.needsTrustApproval).length;
+  const attention = found.filter((a) => a.needsTrustApproval).length;
 
   summary.textContent = !found.length
     ? 'None detected on this PC'
-    : on === 0
-      ? `${found.length} detected · none connected yet`
-      : `${on} of ${found.length} connected`;
+    : attention
+      ? `${on} connected · ${attention} action required`
+      : on === 0
+        ? `${found.length} detected · none connected yet`
+        : `${on} of ${found.length} connected`;
 
   rows.replaceChildren();
   for (const a of list) {
@@ -77,8 +83,8 @@ async function refresh(): Promise<void> {
       el('span', undefined, a.displayName),
       el(
         'span',
-        `state${a.wired ? ' on' : ''}`,
-        !a.installed ? 'Not installed' : a.wired ? 'Connected' : 'Not connected'
+        `state${a.needsTrustApproval ? ' attention' : a.wired ? ' on' : ''}`,
+        !a.installed ? 'Not installed' : a.needsTrustApproval ? 'Action required' : a.wired ? 'Connected' : 'Not connected'
       )
     );
     info.append(name);
@@ -99,13 +105,64 @@ async function refresh(): Promise<void> {
       await window.pinglySetup.setWired(a.id, !wasWired);
       note.textContent = wasWired
         ? `Removed Pingly's hooks from ${a.displayName}. Your own settings were left untouched.`
-        : a.needsRestart
-          ? `${a.displayName} is connected. Restart it — hooks only load when a session starts.`
-          : `${a.displayName} is connected and picks this up straight away. No restart needed.`;
+        : a.id === 'codex'
+          ? 'Almost done — complete the one-time Codex approval shown below.'
+          : a.needsRestart
+            ? `${a.displayName} is connected. Restart it — hooks only load when a session starts.`
+            : `${a.displayName} is connected and picks this up straight away. No restart needed.`;
       await refresh();
     };
     row.append(btn);
     rows.append(row);
+
+    if (a.needsTrustApproval) {
+      const guide = el('div', 'trust-card');
+      guide.append(el('div', 'trust-kicker', 'ONE-TIME CODEX STEP'));
+      guide.append(el('h3', undefined, 'Finish connecting Codex'));
+      guide.append(
+        el(
+          'p',
+          undefined,
+          'The live timer works automatically. Trust Pingly\'s hooks now so approval requests also alert you from your first task.'
+        )
+      );
+      const steps = el('ol');
+      for (const text of [
+        'Click Open Codex below. Pingly will also copy /hooks for you.',
+        'Paste /hooks into the Codex terminal and open the hook review.',
+        'Find the Pingly entries from ~/.codex/hooks.json and choose Trust, then return here.'
+      ]) steps.append(el('li', undefined, text));
+      guide.append(steps);
+
+      const actions = el('div', 'trust-actions');
+      const open = el('button', 'primary', 'Open Codex & copy /hooks') as HTMLButtonElement;
+      open.onclick = async () => {
+        open.disabled = true;
+        try {
+          const result = await window.pinglySetup.openCodexHookReview();
+          note.textContent = result.opened
+            ? 'Codex is open and /hooks is copied. Paste it there, choose Trust for the Pingly entries, then return here.'
+            : result.copied
+              ? 'Could not open Codex CLI, but /hooks is copied. Open Codex yourself, paste it, and choose Trust for Pingly.'
+              : 'Could not open Codex or copy /hooks. Open Codex manually, type /hooks, and choose Trust for Pingly.';
+        } catch {
+          note.textContent = 'Could not open Codex. Open it manually, type /hooks, and choose Trust for Pingly.';
+        } finally {
+          open.disabled = false;
+        }
+      };
+
+      const done = el('button', undefined, 'I’ve approved the hooks') as HTMLButtonElement;
+      done.onclick = async () => {
+        done.disabled = true;
+        await window.pinglySetup.confirmCodexTrust();
+        note.textContent = 'Codex setup complete. Pingly will track new turns and alert you when Codex needs approval.';
+        await refresh();
+      };
+      actions.append(open, done);
+      guide.append(actions);
+      rows.append(guide);
+    }
   }
 }
 

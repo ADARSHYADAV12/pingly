@@ -66,6 +66,12 @@ Remove-Item "$env:APPDATA\pingly\config.json" -Force
 - [ ] Each row states what connecting will do, and shows the exact file path
 - [ ] **Show me a sample** fires a real notification
 - [ ] Connect → the note tells you to restart that agent
+- [ ] Connect Codex → its row says **Action required** and a prominent one-time card shows
+      **Open Codex & copy /hooks**
+- [ ] Click it → a visible Codex terminal opens and `/hooks` is on the clipboard
+- [ ] If terminal launch fails, the UI says `/hooks` was still copied and gives the manual fallback
+- [ ] The Codex card remains after relaunch until **I've approved the hooks** is clicked
+- [ ] Confirming trust changes Codex to **Connected** and removes it from the action count
 - [ ] Disconnect → the note says your own settings were left alone
 
 ---
@@ -86,6 +92,8 @@ Move your mouse away from the top of the screen first, or hover will hold it ope
 - [ ] **working** → tiny pill only: a dot and a live `M:SS`. No card.
 - [ ] **done** → full card, green check, `Finished in …`, `Resume Coding →`
 - [ ] done card collapses on its own after ~10s, then disappears entirely
+- [ ] After one done card disappears, firing another done event brings the dock back above
+      the active coding window (it must not reopen behind it)
 - [ ] **needs-input** → amber card, the question as the message, mono chip for the command
 - [ ] needs-input collapses to the pill after ~30s but **the amber pill stays**, counting how
       long it's been waiting — it must not vanish
@@ -174,17 +182,25 @@ Restart the agent first. These can only be verified by real use.
 - [ ] Press Esc to interrupt → **no** notification (cancelling yourself isn't news)
 
 ### Cursor
+- [ ] With Claude Code also connected, one Cursor prompt still creates exactly one session
+- [ ] Session project is the opened workspace, never `.cursor` or `.claude`
+- [ ] **Open Session** focuses/flashes the Cursor workspace instead of saying no destination
+- [ ] Send a prompt → tiny pill with a live timer
 - [ ] Task finishes → card
 - [ ] No card on every shell command (deliberate — Cursor has no approval signal)
 - [ ] Cancelling a turn produces nothing
 
 ### Codex CLI
+- [ ] Send a prompt → tiny pill with a live timer
+- [ ] Approval request → `Waiting for your input` card + sound
+- [ ] Approve it and let the tool finish → card returns to the working timer
 - [ ] Turn completes → card with the closing message, truncated to 80 chars
 - [ ] **Computer-use still works.** Pingly took Codex's single `notify` slot and re-runs
       your original program; if that broke, this is where you'd see it.
 
 ### Extensions inside an editor
-Hooks live in each tool's global config, not in the editor, so the host should not matter.
+Codex IDE uses its local lifecycle journal as a prompt-start fallback.
+- [ ] Codex extension: send a prompt -> dot and live clock appear before the task finishes
 - [ ] Claude Code extension in **VS Code** → card on finish
 - [ ] Claude Code or Codex extension in **Antigravity IDE** → card on finish
 - [ ] `Resume Coding` focuses the editor window, not a stray terminal
@@ -236,7 +252,8 @@ Hooks live in each tool's global config, not in the editor, so the host should n
 - Antigravity's own agent is **not supported**: its hook runner leaves the outer quotes on
   the command, so `"C:\Program Files\nodejs\node.exe"` never resolves. The Claude Code and
   Codex extensions running inside Antigravity are unaffected.
-- Codex only ever reports `done`. It has one event.
+- Older Codex builds only report `done`; the live timer and approval alerts require a build
+  with lifecycle hooks.
 - Unsigned, so SmartScreen and possibly antivirus will complain.
 - Windows only.
 

@@ -25,5 +25,7 @@ contextBridge.exposeInMainWorld('pinglySetup', {
   list: () => ipcRenderer.invoke('adapters:list'),
   runtime: () => ipcRenderer.invoke('adapters:runtime'),
   setWired: (id: string, on: boolean) => ipcRenderer.invoke('adapters:setWired', id, on),
+  openCodexHookReview: () => ipcRenderer.invoke('adapters:openCodexHookReview'),
+  confirmCodexTrust: () => ipcRenderer.invoke('adapters:confirmCodexTrust'),
   demo: () => ipcRenderer.invoke('demo:notify')
 });
