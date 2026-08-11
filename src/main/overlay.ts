@@ -4,6 +4,7 @@ import { sessions } from './sessions';
 import { settings } from './settings';
 import { soundDataUrls, maybePlay } from './sounds';
 import { jumpTo, type JumpResult } from './focus';
+import { updater } from './updater';
 
 const W = 1000;
 // Tall enough for four stacked cards, capped to the work area so it never runs off
@@ -59,7 +60,8 @@ function pollCursor(): void {
 function push(): void {
   overlay?.webContents.send('sessions', {
     sessions: sessions.visible(),
-    autoCollapseMs: settings.get('autoCollapseMs')
+    autoCollapseMs: settings.get('autoCollapseMs'),
+    update: updater.info()
   });
 }
 
@@ -139,7 +141,11 @@ export function createOverlay(preload: string, rendererUrl: string | null, rende
     void handleJump(cwd);
   });
 
+  ipcMain.on('update:dismiss', () => updater.dismiss());
+  ipcMain.on('update:download', () => void updater.download());
+
   sessions.on('changed', push);
+  updater.on('changed', push);
   sessions.on('notify', (s) => {
     // A working pill can already be visible when completion arrives, leaving no show
     // transition to lift it back above the active coding window.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes Pingly: public source+releases repo, the v0.1.0 release with the
+# Publishes Pingly: public source, the package.json version as a release, and the
 # installers attached, and the private landing-page repo.
 #
 #   gh auth login          # once, interactive — needs a browser
@@ -11,8 +11,8 @@ set -euo pipefail
 USER_NAME="${GITHUB_USER:-ADARSHYADAV12}"
 APP_REPO="pingly"
 SITE_REPO="pingly-site"
-TAG="v0.1.0"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TAG="v$(node -p "require('$ROOT/package.json').version")"
 
 GH="gh"
 command -v gh >/dev/null || GH="/c/Program Files/GitHub CLI/gh.exe"

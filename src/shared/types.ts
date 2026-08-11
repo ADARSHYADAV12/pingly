@@ -31,3 +31,13 @@ export interface Session {
   windowHandle?: number;
   dismissed: boolean;
 }
+
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  downloadUrl: string;
+  releaseUrl: string;
+  notes?: string;
+  foundAt: number;
+  dismissed: boolean;
+}

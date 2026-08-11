@@ -1,9 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { Session } from '../shared/types';
+import type { Session, UpdateInfo } from '../shared/types';
 
 export interface DockPayload {
   sessions: Session[];
   autoCollapseMs: number;
+  update: UpdateInfo | null;
 }
 
 contextBridge.exposeInMainWorld('pingly', {
@@ -17,7 +18,9 @@ contextBridge.exposeInMainWorld('pingly', {
   setRect: (r: { x: number; y: number; width: number; height: number }) => ipcRenderer.send('dock:rect', r),
   setVisible: (on: boolean) => ipcRenderer.send('dock:visible', on),
   dismiss: (cwd: string) => ipcRenderer.send('dock:dismiss', cwd),
-  jump: (cwd: string) => ipcRenderer.send('dock:jump', cwd)
+  jump: (cwd: string) => ipcRenderer.send('dock:jump', cwd),
+  dismissUpdate: () => ipcRenderer.send('update:dismiss'),
+  downloadUpdate: () => ipcRenderer.send('update:download')
 });
 
 // used by the setup window

@@ -15,6 +15,7 @@ import { initLog, LOG_FILE } from './log';
 import { startCodexSessionWatcher } from './codex-session-watcher';
 import { startCursorSessionWatcher } from './cursor-session-watcher';
 import { launchCodexHookReview } from './codex-hook-review';
+import { updater } from './updater';
 
 const resourcesDir = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources');
 const preloadPath = join(__dirname, '../preload/index.js');
@@ -69,6 +70,13 @@ function buildTrayMenu(): void {
         ? active.map((s) => ({ label: `${s.project} — ${s.state}`, enabled: false }))
         : [{ label: 'No active sessions', enabled: false }]),
       { type: 'separator' },
+      ...(updater.info()
+        ? [
+            { label: `Update available — v${updater.info()!.version}`, click: () => void updater.download() },
+            { label: 'Check for updates', click: () => void updater.check() },
+            { type: 'separator' as const }
+          ]
+        : [{ label: 'Check for updates', click: () => void updater.check() }, { type: 'separator' as const }]),
       // escape hatch: clears the dock even if the overlay itself is unreachable
       { label: 'Dismiss all', enabled: active.length > 0, click: () => sessions.dismissAll() },
       {
@@ -158,6 +166,8 @@ if (bulk) {
     buildTrayMenu();
     tray.on('click', toggleDock);
     sessions.on('changed', buildTrayMenu);
+    updater.on('changed', buildTrayMenu);
+    updater.start();
 
     await startServer();
     startCodexSessionWatcher((turn) => {

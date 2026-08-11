@@ -1,9 +1,10 @@
-import type { Session, SessionState } from '../shared/types';
+import type { Session, SessionState, UpdateInfo } from '../shared/types';
 import { workingSetChanged } from '../shared/dock-state';
 
 interface DockPayload {
   sessions: Session[];
   autoCollapseMs: number;
+  update: UpdateInfo | null;
 }
 
 declare global {
@@ -19,6 +20,8 @@ declare global {
       setVisible(on: boolean): void;
       dismiss(cwd: string): void;
       jump(cwd: string): void;
+      dismissUpdate(): void;
+      downloadUpdate(): void;
     };
   }
 }
@@ -61,6 +64,7 @@ const stage = document.getElementById('stage') as HTMLDivElement;
 const inner = document.getElementById('inner') as HTMLDivElement;
 
 let sessions: Session[] = [];
+let update: UpdateInfo | null = null;
 let autoCollapseMs = 10000;
 let pinned = false; // tray left-click keeps the dock expanded
 let hovering = false;
@@ -168,12 +172,58 @@ const URGENT_EXPAND_MS = 30_000;
  * Collapsing is not dismissing — the session stays, and its dot stays lit in the pill.
  */
 function isExpanded(now: number): boolean {
-  if (!sessions.length) return false;
+  if (!sessions.length && !update) return false;
   if (pinned || hovering) return true;
+  if (update && !update.dismissed && now - update.foundAt < autoCollapseMs) return true;
   return sessions.some((s) => {
     if (s.state === 'working') return false;
     return now - s.changedAt < (urgent(s) ? URGENT_EXPAND_MS : autoCollapseMs);
   });
+}
+
+function updateCard(info: UpdateInfo): HTMLElement {
+  const c = el('div', 'card update-card');
+  const art = el('div', 'mascot');
+  art.append(mascot());
+  c.append(art);
+
+  const body = el('div', 'body');
+  const top = el('div', 'top');
+  top.append(el('span', 'agent', 'Pingly'));
+  const brand = el('span', 'brand');
+  brand.append(el('i', 'dot done'), document.createTextNode(`v${info.currentVersion} installed`));
+  const close = el('button', 'close', '×') as HTMLButtonElement;
+  close.title = 'Remind me later';
+  close.setAttribute('aria-label', 'Remind me later');
+  close.onclick = (event) => {
+    event.stopPropagation();
+    window.pingly.dismissUpdate();
+  };
+  top.append(brand, close);
+  body.append(top);
+
+  const status = el('h2', 'status', `Pingly v${info.version} is ready`);
+  const badge = el('span', 'badge done');
+  badge.append(svg(ICON.check));
+  status.append(badge);
+  body.append(status);
+  body.append(el('p', 'message', 'A new version is available. Download it now, then run the installer to update Pingly.'));
+
+  const foot = el('div', 'foot');
+  const meta = el('div', 'meta');
+  meta.append(metaItem(ICON.clock, 'Update available'));
+  foot.append(meta);
+  const action = el('button', 'action') as HTMLButtonElement;
+  action.append(document.createTextNode('Download update'), el('span', 'arrow', '→'));
+  action.onclick = (event) => {
+    event.stopPropagation();
+    window.pingly.downloadUpdate();
+  };
+  foot.append(action);
+  body.append(foot);
+  c.append(body);
+  c.onclick = () => window.pingly.downloadUpdate();
+  return c;
 }
 
 /* ---------- rendering ---------- */
@@ -301,6 +351,7 @@ function render(force = false): void {
     expanded,
     visible,
     [...notes],
+    update && [update.version, update.foundAt, update.dismissed],
     sessions.map((s) => [s.cwd, s.state, s.message, s.detail, s.agent, s.changedAt])
   ]);
   if (sig === signature && !force) {
@@ -328,6 +379,7 @@ function render(force = false): void {
   if (!expanded) {
     inner.append(pill());
   } else {
+    if (update && !update.dismissed) inner.append(updateCard(update));
     for (const s of sessions.slice(0, MAX_CARDS)) inner.append(card(s));
     if (sessions.length > MAX_CARDS) inner.append(el('div', 'more', `+${sessions.length - MAX_CARDS} more`));
   }
@@ -381,6 +433,7 @@ window.pingly.onSessions((p) => {
     hovering = false;
   }
   sessions = p.sessions;
+  update = p.update;
   autoCollapseMs = p.autoCollapseMs;
   render();
 });

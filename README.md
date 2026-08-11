@@ -59,8 +59,10 @@ tells you if it isn't found.
 
 Pingly is deliberately boring about this, because it edits files you care about:
 
-- **Nothing leaves your PC.** No accounts, no telemetry, no network calls beyond
-  `127.0.0.1`. The local server refuses any request carrying an `Origin` header.
+- **Your work never leaves your PC.** No accounts or telemetry. The only external request
+  is a version-only check against Pingly's public GitHub Releases feed; prompts, paths,
+  session data, and config are never included. The local event server stays on `127.0.0.1`
+  and refuses any request carrying an `Origin` header.
 - **Your configs are merged, never overwritten.** The original is copied to
   `<file>.pingly-backup` before the first write.
 - **Disconnect removes only Pingly's own entries**, and leaves your own hooks byte-for-byte
@@ -73,6 +75,11 @@ Pingly is deliberately boring about this, because it edits files you care about:
 
 Files live in `%LOCALAPPDATA%\Pingly` (shim, log, Codex chain record) and
 `%APPDATA%\pingly` (settings).
+
+Pingly checks for a newer stable GitHub release shortly after startup and every six hours.
+When one exists, it shows a normal Pingly card and adds **Update available** to the tray
+menu. Updates are never installed in the background: **Download update** opens the exact
+installer attached to that release, and the user runs it when ready.
 
 ## Troubleshooting
 
