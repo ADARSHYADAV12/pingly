@@ -23,7 +23,7 @@ import {
 import { launchCodexHookReview } from '../src/main/codex-hook-review';
 import { CODEX_CHAIN_FILE, PORT_FILE } from '../src/shared/paths';
 import type { PinglyEvent } from '../src/shared/types';
-import { workingSetChanged } from '../src/shared/dock-state';
+import { shouldExpandForSessions, workingSetChanged } from '../src/shared/dock-state';
 
 const home = homedir();
 assert.ok(home.includes('pingly-adapter-test'), `refusing to run against a real home: ${home}`);
@@ -62,6 +62,15 @@ rmSync(home, { recursive: true, force: true });
     false,
     'the delayed Cursor identity handoff must preserve an intentional hover expansion'
   );
+}
+
+/* ---------------- completed dock waits for explicit user action ---------------- */
+{
+  assert.equal(shouldExpandForSessions([{ state: 'working' }]), false, 'working starts as the timer pill');
+  assert.equal(shouldExpandForSessions([{ state: 'done' }]), true, 'a completed card must remain expanded');
+  assert.equal(shouldExpandForSessions([{ state: 'needs-input' }]), true, 'an input request must remain expanded');
+  assert.equal(shouldExpandForSessions([{ state: 'error' }]), true, 'an error must remain expanded');
+  assert.equal(shouldExpandForSessions([]), false, 'closing the last card hides the dock');
 }
 
 /* ---------------- immediate Cursor lifecycle watcher ---------------- */

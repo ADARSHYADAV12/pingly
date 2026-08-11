@@ -1,6 +1,15 @@
 import type { Session } from './types';
 
 type DockSession = Pick<Session, 'agent' | 'cwd' | 'state' | 'turnId'>;
+type VisibilitySession = Pick<Session, 'state'>;
+
+/**
+ * Working turns stay as the quiet timer pill. Once an agent stops, the card remains open
+ * until the user explicitly opens or dismisses it; elapsed time must never hide news.
+ */
+export function shouldExpandForSessions(sessions: readonly VisibilitySession[]): boolean {
+  return sessions.some((session) => session.state !== 'working');
+}
 
 function workingIds(sessions: readonly DockSession[]): string[] {
   return sessions

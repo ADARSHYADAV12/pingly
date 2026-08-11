@@ -1,5 +1,5 @@
 import type { Session, SessionState, UpdateInfo } from '../shared/types';
-import { workingSetChanged } from '../shared/dock-state';
+import { shouldExpandForSessions, workingSetChanged } from '../shared/dock-state';
 
 interface DockPayload {
   sessions: Session[];
@@ -162,23 +162,16 @@ function mascot(): SVGElement {
 
 const urgent = (s: Session): boolean => s.state === 'needs-input' || s.state === 'error';
 
-/** How long a card stays open after it arrives. Urgent states get longer to be noticed. */
-const URGENT_EXPAND_MS = 30_000;
-
 /**
- * The card pops open when something happens, then shrinks back to the pill. Nothing holds
- * the dock open indefinitely: while an agent is working you are looking somewhere else,
- * and a permission prompt from one project must not cover the screen while another runs.
- * Collapsing is not dismissing — the session stays, and its dot stays lit in the pill.
+ * Working turns are always the small pill. Once something happens, the full card stays
+ * visible until the user opens it or closes it themselves, so a short timeout can never
+ * make a completion or permission prompt disappear before it is noticed.
  */
 function isExpanded(now: number): boolean {
   if (!sessions.length && !update) return false;
   if (pinned || hovering) return true;
   if (update && !update.dismissed && now - update.foundAt < autoCollapseMs) return true;
-  return sessions.some((s) => {
-    if (s.state === 'working') return false;
-    return now - s.changedAt < (urgent(s) ? URGENT_EXPAND_MS : autoCollapseMs);
-  });
+  return shouldExpandForSessions(sessions);
 }
 
 function updateCard(info: UpdateInfo): HTMLElement {
